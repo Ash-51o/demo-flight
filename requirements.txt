@@ -4,4 +4,4 @@ requests==2.32.3
 beautifulsoup4==4.12.3
 selenium==4.25.0
 webdriver-manager==4.0.2
-openpxyl
+openpxyl == 3.1.5
