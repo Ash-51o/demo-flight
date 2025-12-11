@@ -196,7 +196,7 @@ form.addEventListener('submit', async (e) => {
     // ---------- CONTACTS (NEW) ----------
     try {
       if (contactsAirline && domContacts && occContacts && otherContacts) {
-      const cres = await fetch(`${API_BASE}/api/contacts-by-tail?n=${encodeURIComponent(n)}`);
+          const cres = await fetch(`${API_BASE}/api/contacts-by-tail?n=${encodeURIComponent(n)}`);
         if (cres.ok) {
           const cdata = await cres.json();
           const c = cdata.contacts || {};

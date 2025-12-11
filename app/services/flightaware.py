@@ -31,7 +31,7 @@ def get_registration(n_number: str) -> dict:
         n = "N" + n
 
     url = f"{FA_BASE}/resources/registration/{n}"
-    console.log(url)
+    print(url)
     sess = make_session()
     r = sess.get(url, timeout=25, allow_redirects=True)
     r.raise_for_status()

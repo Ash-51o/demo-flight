@@ -35,7 +35,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*", "http://127.0.0.1:9001", "http://localhost:9001"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -269,6 +269,7 @@ def api_aircraft(
     icao_hex = hex_from_fr or hex_from_reg
 
     # adsb_data = get_adsb_panel(icao_hex) if (use_adsb and icao_hex) else {}
+    adsb_data = {}
     # coerce pos_epoch to int if possible
     pos_epoch = None
     try:
