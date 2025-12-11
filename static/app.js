@@ -1,3 +1,5 @@
+const API_BASE = "https://demo-flight.onrender.com";
+
 const form = document.getElementById('queryForm');
 const input = document.getElementById('nNumber');
 const spinner = document.getElementById('spinner');
@@ -94,7 +96,7 @@ form.addEventListener('submit', async (e) => {
 
   try {
     // ----------- MAIN AIRCRAFT CALL -----------
-    const res = await fetch(`/api/aircraft?n=${encodeURIComponent(n)}&use_adsb=true`);
+    const res = await fetch(`${API_BASE}/api/aircraft?n=${encodeURIComponent(n)}&use_adsb=true`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -194,7 +196,7 @@ form.addEventListener('submit', async (e) => {
     // ---------- CONTACTS (NEW) ----------
     try {
       if (contactsAirline && domContacts && occContacts && otherContacts) {
-        const cres = await fetch(`/api/contacts-by-tail?n=${encodeURIComponent(n)}`);
+      const cres = await fetch(`${API_BASE}/api/contacts-by-tail?n=${encodeURIComponent(n)}`);
         if (cres.ok) {
           const cdata = await cres.json();
           const c = cdata.contacts || {};
