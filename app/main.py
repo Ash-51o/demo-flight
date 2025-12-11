@@ -268,8 +268,9 @@ def api_aircraft(
         hex_from_reg = raw.split("/")[-1].strip()
     icao_hex = hex_from_fr or hex_from_reg
 
-    # adsb_data = get_adsb_panel(icao_hex) if (use_adsb and icao_hex) else {}
-    adsb_data = {}
+    adsb_data = get_adsb_panel(icao_hex) if (use_adsb and icao_hex) else {}
+    # print("ADSB DATA:", adsb_data)
+    # adsb_data = {}
     # coerce pos_epoch to int if possible
     pos_epoch = None
     try:

@@ -73,7 +73,8 @@ def get_adsb_panel(icao_hex: str, timeout: int = 20) -> Dict:
             "message_rate": _safe_text(soup, "selected_message_rate"),
             "pos_epoch": _safe_text(soup, "selected_pos_epoch"),  # epoch seconds as text
         }
-    except Exception:
+    except Exception as e:
+        # print(f"[ADS-B] Error fetching {url}: {e}")
         return {}
     finally:
         driver.quit()
