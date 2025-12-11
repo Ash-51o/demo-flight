@@ -114,6 +114,8 @@ form.addEventListener('submit', async (e) => {
       kv('Serial Number (MSN)', fr.serial_msn || '—'),
     ].join('');
     fr24Link.innerHTML = fr.source_url ? `Source: <a href="${fr.source_url}" target="_blank" rel="noopener">FR24</a>` : '';
+    // console.log(data);
+// console.log(data.fr24);
 
     // ---------- Registry Card ----------
     const rg = data.registry || {};
@@ -150,7 +152,7 @@ form.addEventListener('submit', async (e) => {
       kv('Source / Msg rate', [ad.source, ad.message_rate].filter(Boolean).join(' · ') || '—'),
     ].join('');
     adsbLink.innerHTML = data.links?.adsb_globe_url ? `Source: <a href="${data.links.adsb_globe_url}" target="_blank" rel="noopener">ADS-B Exchange (globe)</a>` : '';
-
+    console.log(data.links)
     // ---------- Targeting ----------
     const roles = (data.buyer_roles_hint || []).map(r => `<span class="badge text-bg-secondary me-2">${r}</span>`).join('');
     const base = data.likely_base || {};
