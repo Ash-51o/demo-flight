@@ -1,4 +1,4 @@
-# app/test.py
+# app/main.py
 
 import collections
 import datetime as dt
@@ -28,14 +28,14 @@ from app.models.schemas import (
 from app.services.getcontacts import find_dom_occ_for_airline
 
 
-app = FastAPI(title="Airlift – GA Targeting Helper (test)", version="0.4.0")
+app = FastAPI(title="Airlift – GA Targeting Helper", version="0.4.0")
 
 # static/index.html + static/app.js
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*", "http://127.0.0.1:9001", "http://localhost:9001"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -236,6 +236,9 @@ def _last_spotted_from_fr24(flights: List[dict]) -> LastSpotted:
 # -------------------------------------------------------------------
 @app.get("/", include_in_schema=False)
 def root():
+    # Serve the bundled static index file from the project `static` directory.
+    # Use a path relative to the process working directory (project root).
+    print("Serving static index.html")
     return FileResponse("static/index.html")
 
 
@@ -244,36 +247,93 @@ def api_aircraft(
     n: str = Query(..., description="N-number (with or without leading N)"),
     use_adsb: bool = Query(True, description="Whether to fetch ADS-B Exchange live panel"),
 ):
+    print("\n" + "="*80)
+    print(f"API REQUEST: /api/aircraft?n={n}&use_adsb={use_adsb}")
+    print("="*80)
+    
     n_norm = normalize_n(n)
     if not n_norm:
         raise HTTPException(400, "Provide a valid N-number.")
+    
+    print(f"1. Normalized tail: {n_norm}")
 
     # FAA/FlightAware
+    print(f"\n2. Fetching FAA Registry data...")
     reg = get_registration(n_norm)
+    print(f"   Registry owner: {reg.get('owner', 'N/A')}")
+    print(f"   Registry mode_s_code: {reg.get('mode_s_code', 'N/A')}")
 
     # FR24
+    print(f"\n3. Fetching FlightRadar24 data...")
     fr = get_aircraft_and_flights(n_norm)
     fr_ac = fr.get("aircraft", {}) or {}
     flights = fr.get("flights", []) or []
+    print(f"   FR24 operator: {fr_ac.get('operator', 'N/A')}")
+    print(f"   FR24 mode_s: {fr_ac.get('mode_s', 'N/A')}")
+    print(f"   FR24 flights count: {len(flights)}")
 
     # ADS-B (optional)
-    # prefer a hex from FR24/registry; registry "Mode S Code" may include octal/hex as "octal / HEX"
+    print(f"\n4. Determining ICAO hex code...")
     hex_from_fr = fr_ac.get("mode_s")
     hex_from_reg = None
     raw = reg.get("mode_s_code") or ""
     if "/" in raw:
         hex_from_reg = raw.split("/")[-1].strip()
+    
+    print(f"   Hex from FR24: {hex_from_fr}")
+    print(f"   Hex from Registry raw: {raw}")
+    print(f"   Hex from Registry parsed: {hex_from_reg}")
+    
     icao_hex = hex_from_fr or hex_from_reg
-
-    adsb_data = get_adsb_panel(icao_hex) if (use_adsb and icao_hex) else {}
+    print(f"   >>> FINAL ICAO HEX: {icao_hex}")
+    
+    # Fetch ADS-B data
+    print(f"\n5. Fetching ADS-B Exchange data...")
+    print(f"   use_adsb={use_adsb}, icao_hex={icao_hex}")
+    
+    adsb_data = {}
+    if use_adsb and icao_hex:
+        print(f"   Calling get_adsb_panel('{icao_hex}')...")
+        try:
+            adsb_data = get_adsb_panel(icao_hex)
+            print(f"   ✓ ADS-B call completed")
+            print(f"   Raw ADS-B data keys: {list(adsb_data.keys())}")
+            print(f"   Raw ADS-B data sample:")
+            for key in ['hex', 'registration', 'callsign', 'position', 'last_seen']:
+                if key in adsb_data:
+                    print(f"     - {key}: {adsb_data[key]}")
+        except Exception as e:
+            print(f"   ✗ ADS-B call failed: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        if not use_adsb:
+            print(f"   ⊘ Skipped: use_adsb is False")
+        if not icao_hex:
+            print(f"   ⊘ Skipped: No ICAO hex available")
+    
+    # Filter out 'n/a' values from ADS-B data
+    print(f"\n6. Cleaning ADS-B data...")
+    adsb_data_clean = {
+        k: (None if v == 'n/a' else v) 
+        for k, v in adsb_data.items()
+    }
+    non_null_count = sum(1 for v in adsb_data_clean.values() if v is not None)
+    print(f"   Non-null fields after cleaning: {non_null_count}/{len(adsb_data_clean)}")
+    
     # coerce pos_epoch to int if possible
     pos_epoch = None
     try:
-        if adsb_data.get("pos_epoch"):
-            pos_epoch = int(str(adsb_data["pos_epoch"]).strip())
-    except Exception:
+        raw_epoch = adsb_data_clean.get("pos_epoch")
+        if raw_epoch and raw_epoch != 'n/a':
+            pos_epoch = int(str(raw_epoch).strip())
+            print(f"   Parsed pos_epoch: {pos_epoch}")
+    except (ValueError, TypeError) as e:
+        print(f"   Could not parse pos_epoch: {e}")
         pos_epoch = None
 
+    print(f"\n7. Building response blocks...")
+    
     fr24_block = FR24Info(
         model=fr_ac.get("model"),
         airline=fr_ac.get("airline"),
@@ -303,28 +363,30 @@ def api_aircraft(
     )
 
     adsb_block = ADSBInfo(
-        callsign=adsb_data.get("callsign"),
-        hex=adsb_data.get("hex") or icao_hex,
-        registration=adsb_data.get("registration"),
-        icao_type=adsb_data.get("icao_type"),
-        type_full=adsb_data.get("type_full"),
-        type_desc=adsb_data.get("type_desc"),
-        owners_ops=adsb_data.get("owners_ops"),
-        squawk=adsb_data.get("squawk"),
-        groundspeed_kt=adsb_data.get("groundspeed_kt"),
-        baro_altitude=adsb_data.get("baro_altitude"),
-        ground_track=adsb_data.get("ground_track"),
-        true_heading=adsb_data.get("true_heading"),
-        mag_heading=adsb_data.get("mag_heading"),
-        mach=adsb_data.get("mach"),
-        category=adsb_data.get("category"),
-        position=adsb_data.get("position"),
-        last_seen=adsb_data.get("last_seen"),
-        last_pos_age=adsb_data.get("last_pos_age"),
-        source=adsb_data.get("source"),
-        message_rate=adsb_data.get("message_rate"),
+        callsign=adsb_data_clean.get("callsign"),
+        hex=adsb_data_clean.get("hex") or icao_hex,
+        registration=adsb_data_clean.get("registration"),
+        icao_type=adsb_data_clean.get("icao_type"),
+        type_full=adsb_data_clean.get("type_full"),
+        type_desc=adsb_data_clean.get("type_desc"),
+        owners_ops=adsb_data_clean.get("owners_ops"),
+        squawk=adsb_data_clean.get("squawk"),
+        groundspeed_kt=adsb_data_clean.get("groundspeed_kt"),
+        baro_altitude=adsb_data_clean.get("baro_altitude"),
+        ground_track=adsb_data_clean.get("ground_track"),
+        true_heading=adsb_data_clean.get("true_heading"),
+        mag_heading=adsb_data_clean.get("mag_heading"),
+        mach=adsb_data_clean.get("mach"),
+        category=adsb_data_clean.get("category"),
+        position=adsb_data_clean.get("position"),
+        last_seen=adsb_data_clean.get("last_seen"),
+        last_pos_age=adsb_data_clean.get("last_pos_age"),
+        source=adsb_data_clean.get("source"),
+        message_rate=adsb_data_clean.get("message_rate"),
         pos_epoch=pos_epoch,
     )
+    
+    print(f"   ADS-B block created with hex: {adsb_block.hex}")
 
     inferred_op, is_fractional = infer_operation(
         registry_block.owner, fr24_block.operator, registry_block.fractional_owner
@@ -333,7 +395,7 @@ def api_aircraft(
     # Top airports
     top7 = _top_airports(flights, 7)
     top30 = _top_airports(flights, 30)
-    top90 = _top_airports(flights, 90)  # uses available rows (FR24 page depth)
+    top90 = _top_airports(flights, 90)
 
     # Likely base & overnights
     base, overnight_stats = _derive_likely_base_and_overnights(flights)
@@ -373,6 +435,10 @@ def api_aircraft(
     )
 
     chase = _compute_chase_score(last_spotted.epoch, is_fractional, overnight_stats)
+
+    print(f"\n8. Response ready - returning AircraftInsight")
+    print(f"   ADSB Globe URL: {links.adsb_globe_url}")
+    print("="*80 + "\n")
 
     return AircraftInsight(
         tail_number=n_norm,
@@ -424,3 +490,9 @@ def api_contacts_by_tail(
         "airline": operator,
         "contacts": contacts,
     }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    print("Starting Uvicorn server for testing...")
+    uvicorn.run("app.test:app", host="127.0.0.1", port=9001, reload=True)

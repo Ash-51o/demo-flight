@@ -243,6 +243,7 @@ def root():
 
 
 @app.get("/api/aircraft", response_model=AircraftInsight)
+@app.get("/api/aircraft", response_model=AircraftInsight)
 def api_aircraft(
     n: str = Query(..., description="N-number (with or without leading N)"),
     use_adsb: bool = Query(True, description="Whether to fetch ADS-B Exchange live panel"),
@@ -268,9 +269,124 @@ def api_aircraft(
         hex_from_reg = raw.split("/")[-1].strip()
     icao_hex = hex_from_fr or hex_from_reg
 
-    # adsb_data = get_adsb_panel(icao_hex) if (use_adsb and icao_hex) else {}
-    # print("ADSB DATA:", adsb_data)
-    adsb_data = {}
+    # ---------------------------
+    # HARDCODED ADS-B PROFILES
+    # ---------------------------
+    HARDCODED_ADSB_PROFILES = {
+        "N103DY": {
+            "callsign": "N103DY",
+            "hex": "A8C31F",
+            "registration": "N103DY",
+            "icao_type": "GLF6",
+            "type_full": "Gulfstream G600",
+            "type_desc": "Business Jet",
+            "category": "A3",
+            "baro_altitude": 43000,
+            "groundspeed_kt": 445,
+            "ground_track": 210,
+            "true_heading": 208,
+            "mag_heading": 205,
+            "squawk": "1200",
+            "position": {"lat": 34.729, "lon": -86.586},
+            "last_seen": "2024-12-12T14:31:00Z",
+            "last_pos_age": 11,
+            "pos_epoch": 1734004260,
+            "message_rate": 5.4,
+            "source": "HARDCODED-DEMO",
+        },
+
+        "N605FX": {
+            "callsign": "LXJ605",
+            "hex": "A7DA65",
+            "registration": "N605FX",
+            "icao_type": "C750",
+            "type_full": "Cessna Citation X",
+            "type_desc": "Business Jet",
+            "category": "A3",
+            "baro_altitude": 41000,
+            "groundspeed_kt": 430,
+            "ground_track": 274,
+            "true_heading": 273,
+            "mag_heading": 271,
+            "squawk": "1200",
+            "position": {"lat": 32.8968, "lon": -97.0379},
+            "last_seen": "2024-12-12T14:30:00Z",
+            "last_pos_age": 12,
+            "pos_epoch": 1734004200,
+            "message_rate": 5.2,
+            "source": "HARDCODED-DEMO",
+        },
+
+        "N7TS": {
+            "callsign": "N7TS",
+            "hex": "A0F4C1",
+            "registration": "N7TS",
+            "icao_type": "PC12",
+            "type_full": "Pilatus PC-12 NG",
+            "type_desc": "Single-engine Turboprop",
+            "category": "A2",
+            "baro_altitude": 28000,
+            "groundspeed_kt": 255,
+            "ground_track": 147,
+            "true_heading": 146,
+            "mag_heading": 143,
+            "squawk": "4275",
+            "position": {"lat": 39.8561, "lon": -104.6737},
+            "last_seen": "2024-12-12T14:32:30Z",
+            "last_pos_age": 6,
+            "pos_epoch": 1734004350,
+            "message_rate": 4.1,
+            "source": "HARDCODED-DEMO",
+        },
+
+        "N77QS": {
+            "callsign": "N77QS",
+            "hex": "A6F44F",
+            "registration": "N77QS",
+            "icao_type": "GLF5",
+            "type_full": "Gulfstream G550",
+            "type_desc": "Long-range Business Jet",
+            "category": "A3",
+            "baro_altitude": 45000,
+            "groundspeed_kt": 470,
+            "ground_track": 11,
+            "true_heading": 9,
+            "mag_heading": 7,
+            "squawk": "3365",
+            "position": {"lat": 33.9425, "lon": -118.4081},
+            "last_seen": "2024-12-12T14:34:10Z",
+            "last_pos_age": 4,
+            "pos_epoch": 1734004450,
+            "message_rate": 6.0,
+            "source": "HARDCODED-DEMO",
+        },
+
+        "N525FX": {
+            "callsign": "LXJ525",
+            "hex": "A63F22",
+            "registration": "N525FX",
+            "icao_type": "E55P",
+            "type_full": "Embraer Phenom 300",
+            "type_desc": "Light Jet",
+            "category": "A2",
+            "baro_altitude": 39000,
+            "groundspeed_kt": 420,
+            "ground_track": 301,
+            "true_heading": 299,
+            "mag_heading": 296,
+            "squawk": "4512",
+            "position": {"lat": 36.1245, "lon": -86.6782},
+            "last_seen": "2024-12-12T14:35:00Z",
+            "last_pos_age": 3,
+            "pos_epoch": 1734004500,
+            "message_rate": 5.6,
+            "source": "HARDCODED-DEMO",
+        },
+    }
+
+    # lookup ADS-B by normalized N-number
+    adsb_data = HARDCODED_ADSB_PROFILES.get(n_norm, {})
+
     # coerce pos_epoch to int if possible
     pos_epoch = None
     try:
@@ -278,6 +394,20 @@ def api_aircraft(
             pos_epoch = int(str(adsb_data["pos_epoch"]).strip())
     except Exception:
         pos_epoch = None
+
+    # helper to coerce values to strings for the Pydantic model
+    def _str_or_none(v):
+        if v is None:
+            return None
+        # format position dict as "lat, lon"
+        if isinstance(v, dict):
+            lat = v.get("lat")
+            lon = v.get("lon")
+            try:
+                return f"{float(lat):.6f}, {float(lon):.6f}"
+            except Exception:
+                return str(v)
+        return str(v)
 
     fr24_block = FR24Info(
         model=fr_ac.get("model"),
@@ -308,26 +438,26 @@ def api_aircraft(
     )
 
     adsb_block = ADSBInfo(
-        callsign=adsb_data.get("callsign"),
-        hex=adsb_data.get("hex") or icao_hex,
-        registration=adsb_data.get("registration"),
-        icao_type=adsb_data.get("icao_type"),
-        type_full=adsb_data.get("type_full"),
-        type_desc=adsb_data.get("type_desc"),
-        owners_ops=adsb_data.get("owners_ops"),
-        squawk=adsb_data.get("squawk"),
-        groundspeed_kt=adsb_data.get("groundspeed_kt"),
-        baro_altitude=adsb_data.get("baro_altitude"),
-        ground_track=adsb_data.get("ground_track"),
-        true_heading=adsb_data.get("true_heading"),
-        mag_heading=adsb_data.get("mag_heading"),
-        mach=adsb_data.get("mach"),
-        category=adsb_data.get("category"),
-        position=adsb_data.get("position"),
-        last_seen=adsb_data.get("last_seen"),
-        last_pos_age=adsb_data.get("last_pos_age"),
-        source=adsb_data.get("source"),
-        message_rate=adsb_data.get("message_rate"),
+        callsign=_str_or_none(adsb_data.get("callsign") or adsb_data.get("registration")),
+        hex=_str_or_none(adsb_data.get("hex") or icao_hex),
+        registration=_str_or_none(adsb_data.get("registration")),
+        icao_type=_str_or_none(adsb_data.get("icao_type")),
+        type_full=_str_or_none(adsb_data.get("type_full")),
+        type_desc=_str_or_none(adsb_data.get("type_desc")),
+        owners_ops=_str_or_none(adsb_data.get("owners_ops")),
+        squawk=_str_or_none(adsb_data.get("squawk")),
+        groundspeed_kt=_str_or_none(adsb_data.get("groundspeed_kt")),
+        baro_altitude=_str_or_none(adsb_data.get("baro_altitude")),
+        ground_track=_str_or_none(adsb_data.get("ground_track")),
+        true_heading=_str_or_none(adsb_data.get("true_heading")),
+        mag_heading=_str_or_none(adsb_data.get("mag_heading")),
+        mach=_str_or_none(adsb_data.get("mach")),
+        category=_str_or_none(adsb_data.get("category")),
+        position=_str_or_none(adsb_data.get("position")),
+        last_seen=_str_or_none(adsb_data.get("last_seen")),
+        last_pos_age=_str_or_none(adsb_data.get("last_pos_age")),
+        source=_str_or_none(adsb_data.get("source")),
+        message_rate=_str_or_none(adsb_data.get("message_rate")),
         pos_epoch=pos_epoch,
     )
 
