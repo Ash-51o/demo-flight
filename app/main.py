@@ -243,7 +243,6 @@ def root():
 
 
 @app.get("/api/aircraft", response_model=AircraftInsight)
-@app.get("/api/aircraft", response_model=AircraftInsight)
 def api_aircraft(
     n: str = Query(..., description="N-number (with or without leading N)"),
     use_adsb: bool = Query(True, description="Whether to fetch ADS-B Exchange live panel"),
@@ -566,4 +565,4 @@ if __name__ == "__main__":
     print("Starting Uvicorn server for testing...")
     # Run the `app` in this module. When invoking the file directly,
     # point uvicorn at `app.main:app` so the correct FastAPI instance is used.
-    uvicorn.run("main:app", host="127.0.0.1", port=9001, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=9001, reload=True)
