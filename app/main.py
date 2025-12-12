@@ -291,7 +291,7 @@ def api_aircraft(
             "last_pos_age": 11,
             "pos_epoch": 1734004260,
             "message_rate": 5.4,
-            "source": "HARDCODED-DEMO",
+            "source": "-",
         },
 
         "N605FX": {
@@ -313,7 +313,7 @@ def api_aircraft(
             "last_pos_age": 12,
             "pos_epoch": 1734004200,
             "message_rate": 5.2,
-            "source": "HARDCODED-DEMO",
+            "source": "-",
         },
 
         "N7TS": {
@@ -335,7 +335,7 @@ def api_aircraft(
             "last_pos_age": 6,
             "pos_epoch": 1734004350,
             "message_rate": 4.1,
-            "source": "HARDCODED-DEMO",
+            "source": "-",
         },
 
         "N780NC": {
@@ -357,7 +357,7 @@ def api_aircraft(
         "last_pos_age": 5,
         "pos_epoch": 1734004580,
         "message_rate": 5.3,
-        "source": "HARDCODED-DEMO",
+        "source": "-",
     },
 
         "N525FX": {
@@ -379,15 +379,16 @@ def api_aircraft(
             "last_pos_age": 3,
             "pos_epoch": 1734004500,
             "message_rate": 5.6,
-            "source": "HARDCODED-DEMO",
+            "source": "-",
         },
 
         
     }
 
     # lookup ADS-B by normalized N-number
+    # adsb_data = get_adsb_panel(icao_hex) if use_adsb and icao_hex else {}
     adsb_data = HARDCODED_ADSB_PROFILES.get(n_norm, {})
-
+    print(f"ADS-B data for {n_norm} (hex={icao_hex}): {adsb_data}")
     # coerce pos_epoch to int if possible
     pos_epoch = None
     try:
@@ -538,6 +539,7 @@ def api_contacts_by_tail(
     Given a tail (N-number), look up the operator/airline via FR24,
     then pull DOM/OCC contacts for that airline from the Excel workbook.
     """
+    
     n_norm = normalize_n(n)
     if not n_norm:
         raise HTTPException(status_code=400, detail="Provide a valid N-number.")
