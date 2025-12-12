@@ -338,27 +338,27 @@ def api_aircraft(
             "source": "HARDCODED-DEMO",
         },
 
-        "N77QS": {
-            "callsign": "N77QS",
-            "hex": "A6F44F",
-            "registration": "N77QS",
-            "icao_type": "GLF5",
-            "type_full": "Gulfstream G550",
-            "type_desc": "Long-range Business Jet",
-            "category": "A3",
-            "baro_altitude": 45000,
-            "groundspeed_kt": 470,
-            "ground_track": 11,
-            "true_heading": 9,
-            "mag_heading": 7,
-            "squawk": "3365",
-            "position": {"lat": 33.9425, "lon": -118.4081},
-            "last_seen": "2024-12-12T14:34:10Z",
-            "last_pos_age": 4,
-            "pos_epoch": 1734004450,
-            "message_rate": 6.0,
-            "source": "HARDCODED-DEMO",
-        },
+        "N780NC": {
+        "callsign": "EJA780",            
+        "hex": "A9D541",                 
+        "registration": "N780NC",
+        "icao_type": "C56X",
+        "type_full": "Cessna Citation Excel/XLS",
+        "type_desc": "Business Jet",
+        "category": "A3",
+        "baro_altitude": 41000,
+        "groundspeed_kt": 446,
+        "ground_track": 228,
+        "true_heading": 226,
+        "mag_heading": 224,
+        "squawk": "5423",
+        "position": {"lat": 33.6407, "lon": -84.4277},   
+        "last_seen": "2024-12-12T14:36:20Z",
+        "last_pos_age": 5,
+        "pos_epoch": 1734004580,
+        "message_rate": 5.3,
+        "source": "HARDCODED-DEMO",
+    },
 
         "N525FX": {
             "callsign": "LXJ525",
@@ -381,6 +381,8 @@ def api_aircraft(
             "message_rate": 5.6,
             "source": "HARDCODED-DEMO",
         },
+
+        
     }
 
     # lookup ADS-B by normalized N-number
