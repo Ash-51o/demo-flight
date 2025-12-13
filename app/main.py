@@ -316,10 +316,10 @@ def api_aircraft(
             "source": "-",
         },
 
-        "N7TS": {
-            "callsign": "N7TS",
+        "N101CN": {
+            "callsign": "N101CN",
             "hex": "A0F4C1",
-            "registration": "N7TS",
+            "registration": "N101CN",
             "icao_type": "PC12",
             "type_full": "Pilatus PC-12 NG",
             "type_desc": "Single-engine Turboprop",
@@ -386,8 +386,8 @@ def api_aircraft(
     }
 
     # lookup ADS-B by normalized N-number
-    # adsb_data = get_adsb_panel(icao_hex) if use_adsb and icao_hex else {}
-    adsb_data = HARDCODED_ADSB_PROFILES.get(n_norm, {})
+    adsb_data = get_adsb_panel(icao_hex) if use_adsb and icao_hex else {}
+    # adsb_data = HARDCODED_ADSB_PROFILES.get(n_norm, {})
     print(f"ADS-B data for {n_norm} (hex={icao_hex}): {adsb_data}")
     # coerce pos_epoch to int if possible
     pos_epoch = None
