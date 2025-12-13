@@ -1,5 +1,5 @@
-const API_BASE = "https://demo-flight.onrender.com";
-// const API_BASE = "http://127.0.0.1:9001";
+// const API_BASE = "https://demo-flight.onrender.com";
+const API_BASE = "";
 
 const form = document.getElementById('queryForm');
 const input = document.getElementById('nNumber');
